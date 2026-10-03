@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bênção ou Maldição de Leafa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900">
+<div class="p-6 bg-slate-900 text-slate-100 min-h-screen font-sans">
+  <h1 class="text-2xl font-bold mb-1">Bênção ou Maldição de Leafa</h1>
+  <p class="text-slate-400 mb-4">Chance de tirar 20 num d20 conforme o modificador</p>
+
+  <svg id="chart" viewBox="0 0 800 380" class="w-full bg-slate-800 rounded-xl"></svg>
+
+  <div class="mt-6 bg-slate-800 rounded-xl p-4">
+    <input id="slider" type="range" min="-50" max="50" value="0" class="w-full accent-amber-400">
+    <div class="flex justify-between items-center mt-3">
+      <span id="label" class="text-xl font-bold"></span>
+      <span id="result" class="text-xl"></span>
+    </div>
+  </div>
+
+  <table class="w-full mt-6 text-center bg-slate-800 rounded-xl overflow-hidden">
+    <thead class="bg-slate-700"><tr><th class="p-2">Modificador</th><th>Chance de 20</th><th>Equivale a</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+const MIN = 0.5; // 1 em 200
+function chance(m){
+  if (m >= 0) return 5 + m * 0.9;            // +50 => 50% (1 em 2)
+  return Math.max(MIN, 5 * (1 - Math.abs(m)/50));
+}
+function oneIn(p){ return "1 em " + Math.round(100/p); }
+
+const W=800,H=380,L=60,R=20,T=20,B=50;
+const x = m => L + (m+50)/100*(W-L-R);
+const y = p => T + (1 - p/55)*(H-T-B);
+const svg = document.getElementById('chart');
+let s = '';
+
+// grade
+for (let p=0;p<=50;p+=10){
+  s += `<line x1="${L}" x2="${W-R}" y1="${y(p)}" y2="${y(p)}" stroke="#334155"/>`;
+  s += `<text x="${L-8}" y="${y(p)+4}" fill="#94a3b8" font-size="12" text-anchor="end">${p}%</text>`;
+}
+for (let m=-50;m<=50;m+=10){
+  s += `<text x="${x(m)}" y="${H-B+20}" fill="#94a3b8" font-size="12" text-anchor="middle">${m>0?'+':''}${m}%</text>`;
+}
+s += `<line x1="${x(0)}" x2="${x(0)}" y1="${T}" y2="${H-B}" stroke="#64748b" stroke-dasharray="4"/>`;
+s += `<text x="${x(-25)}" y="${H-10}" fill="#c084fc" font-size="13" text-anchor="middle">Maldição</text>`;
+s += `<text x="${x(25)}" y="${H-10}" fill="#fbbf24" font-size="13" text-anchor="middle">Bênção</text>`;
+
+// curvas
+let neg='', pos='';
+for (let m=-50;m<=0;m++) neg += `${x(m)},${y(chance(m))} `;
+for (let m=0;m<=50;m++) pos += `${x(m)},${y(chance(m))} `;
+s += `<polyline points="${neg}" fill="none" stroke="#c084fc" stroke-width="3"/>`;
+s += `<polyline points="${pos}" fill="none" stroke="#fbbf24" stroke-width="3"/>`;
+s += `<circle id="dot" r="7" fill="#fff"/>`;
+svg.innerHTML = s;
+
+// tabela
+const pts = [-50,-45,-40,-30,-20,-10,-5,0,5,10,20,30,40,45,50];
+document.getElementById('tbody').innerHTML = pts.map(m=>{
+  const p = chance(m), c = m<0?'text-purple-300':m>0?'text-amber-300':'';
+  return `<tr class="border-t border-slate-700 ${c}"><td class="p-2">${m>0?'+':''}${m}%</td><td>${p.toFixed(2)}%</td><td>${oneIn(p)}</td></tr>`;
+}).join('');
+
+// slider
+const sl = document.getElementById('slider');
+function update(){
+  const m = +sl.value, p = chance(m), dot = document.getElementById('dot');
+  dot.setAttribute('cx', x(m)); dot.setAttribute('cy', y(p));
+  const lab = document.getElementById('label');
+  lab.textContent = m<0 ? `Maldição ${m}%` : m>0 ? `Bênção +${m}%` : 'Neutro';
+  lab.className = 'text-xl font-bold ' + (m<0?'text-purple-400':m>0?'text-amber-400':'');
+  document.getElementById('result').textContent = `${p.toFixed(2)}% (${oneIn(p)})`;
+}
+sl.oninput = update; update();
+</script>
+</body>
+</html>
